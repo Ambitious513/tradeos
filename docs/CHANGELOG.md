@@ -1,0 +1,129 @@
+﻿# CHANGELOG.md — A+ Scanner
+# Format: [VERSION] DATE — Description
+
+---
+
+## [0.1.0] 2026-08-31
+
+### Initialization — Project Governance and Specification
+
+**Agent**: Lead CTO (Opus/Fable)
+**Phase**: T001 — Specification Audit and Project Initialization
+**Gate**: Pending GATE-1 (Human Strategy Approval)
+
+#### Created
+
+- `AGENTS.md` — Agent operating constitution (v1.0)
+- `docs/STRATEGY_SPEC.md` — Deterministic strategy specification (v0.1-DRAFT)
+- `docs/SYSTEM_ARCHITECTURE.md` — System component architecture (v0.1-DRAFT)
+- `docs/DATA_CONTRACT.md` — Market data field definitions (v0.1-DRAFT)
+- `docs/RISK_SPEC.md` — Risk management specification (v0.1-DRAFT)
+- `docs/TEST_SPEC.md` — Testing requirements specification (v0.1-DRAFT)
+- `docs/TASK_GRAPH.md` — Development task dependency graph (v0.1-DRAFT)
+- `docs/CHANGELOG.md` — This file
+- `tasks/active/TASK_001_SPECIFICATION_AUDIT.md` — First formal task
+- Directory structure: `tasks/`, `reviews/`, `skills/`
+
+#### Ambiguities Identified and Resolved (Proposed)
+
+28 ambiguities identified (AMB-001 through AMB-028).
+All resolutions are PROPOSED — pending GATE-1 human review.
+See `docs/STRATEGY_SPEC.md` Section 0 (Ambiguity Register).
+
+#### Status
+
+PENDING GATE-1 — No implementation may begin until human approves strategy specification.
+
+---
+
+## [1.0.0] 2026-08-31
+
+### GATE-1 APPROVED — Strategy Specification Locked
+
+**Agent**: Human (final authority)
+**Phase**: GATE-1 — Strategy Specification Review and Approval
+
+#### Approved
+
+All 28 ambiguity resolutions in `docs/STRATEGY_SPEC.md` confirmed by human.
+All strategy parameters are now IMMUTABLE without a formal Strategy Change Proposal.
+
+#### Key Decisions Locked
+
+| Parameter | Value |
+|---|---|
+| BTC regime timeframe | 4H primary, 1H confirmation |
+| Neutral zone | ±1.5% 24H change |
+| Pump/dump threshold | ±8% |
+| RSI thresholds | 75 (short) / 25 (long) |
+| EMA7 extension | 3% |
+| Stop method | MAX(structural, 1.5×ATR14) |
+| Minimum R:R | 2.0:1 |
+| Setup expiration | 4 hours |
+| Daily loss limit | -$25.00 USD |
+| Daily profit lock | +$50.00 USD |
+| A+ score threshold | 80/100 |
+| Risk per trade | $5.00 USD |
+
+#### Updated Files
+
+- `docs/STRATEGY_SPEC.md` → v1.0 (GATE-1 APPROVED); Section 11 replaced with approval record
+- `docs/RISK_SPEC.md` → v1.0 (GATE-1 APPROVED)
+- `docs/DATA_CONTRACT.md` → v1.0 (GATE-1 APPROVED)
+- `docs/TEST_SPEC.md` → v1.0 (GATE-1 APPROVED)
+- `docs/SYSTEM_ARCHITECTURE.md` → v1.0 (GATE-1 APPROVED)
+- `docs/TASK_GRAPH.md` → GATE-1 marked passed
+- `tasks/completed/TASK_001_SPECIFICATION_AUDIT.md` → Archived as APPROVED
+- `docs/CHANGELOG.md` → This entry
+
+#### Status
+
+**GATE-1 PASSED. Implementation may begin. Next: T002 (Foundation) — assign to Codex.**
+
+---
+
+## [0.2.0] 2026-08-31
+
+### T002 APPROVED — Project Foundation
+
+**Agent**: Codex (implementation) | Gemini (adversarial review) | CTO Opus (final review)
+**Release Decision**: APPROVED
+**Tests**: 22 passed / 0 failed | Coverage: 86%
+
+#### Files Created by Codex
+
+- `pyproject.toml` — hatchling build, all dependencies declared with version pins
+- `README.md` — project overview and setup instructions
+- `.env.example` — safe credential template
+- `.gitignore` — expanded during review (*.pyc, .pytest_cache/, src/*.egg-info/ added)
+- `src/scanner/__init__.py`
+- `src/scanner/config.py` — pydantic-settings with GATE-1 constants; validators reject invalid values
+- `src/scanner/logging_setup.py` — structlog JSON/pretty logging
+- `src/scanner/models.py` — frozen Candle, Stats24H, Regime, Direction, SignalState, TERMINAL_STATES
+- `src/scanner/database/__init__.py`
+- `src/scanner/database/connection.py` — async SQLAlchemy engine + session factory
+- `src/scanner/database/migrations.py` — idempotent create_all_tables()
+- `src/scanner/database/models.py` — Signal, StateTransition, Trade, DailySession, AuditLog ORM models
+- `tests/conftest.py` + all test package __init__.py files
+- `tests/unit/test_config.py`, `test_models.py`, `test_database.py`
+- `tests/fixtures/README.md`
+
+#### Review Artifacts
+
+- `reviews/gemini/TASK_002_RED_TEAM.md` — APPROVED_WITH_FIXES (2 gitignore gaps fixed)
+- `reviews/opus/TASK_002_FINAL_REVIEW.md` — APPROVED
+
+#### Skill Extraction
+
+NOT REQUIRED for this task (see T002 Section 16). Revisit after T005.
+
+#### Next Tasks
+
+T003 (Bybit REST Client) and T004 (Bybit WebSocket) — parallel, assign to Codex.
+
+#### Governance Update
+
+Added `docs/AGENT_WORKFLOW.md` and `docs/TASK_CONTRACT_STANDARD.md`.
+Updated `AGENTS.md` to v1.1 with Task Contract workflow in Article 8.
+
+---

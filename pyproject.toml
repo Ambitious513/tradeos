@@ -1,0 +1,55 @@
+[build-system]
+requires = ["hatchling>=1.0,<2.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "a-plus-scanner"
+version = "0.1.0"
+description = "Foundation package for the A+ Scanner."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.0,<3.0",
+    "pydantic-settings>=2.0,<3.0",
+    "sqlalchemy>=2.0,<3.0",
+    "aiosqlite>=0.19,<1.0",
+    "python-dotenv>=1.0,<2.0",
+    "httpx>=0.25,<1.0",
+    "websockets>=12.0,<14.0",
+    "structlog>=23.0,<25.0",
+    "tenacity>=8.0,<10.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0,<9.0",
+    "pytest-asyncio>=0.21,<1.0",
+    "pytest-cov>=4.0,<6.0",
+    "mypy>=1.0,<2.0",
+    "ruff>=0.1,<1.0",
+    "black>=23.0,<25.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/scanner"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+mypy_path = "src"
+plugins = ["pydantic.mypy"]

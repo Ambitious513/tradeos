@@ -1,0 +1,29 @@
+# Credentials — NEVER commit
+.env
+.env.*
+!.env.example
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Type checking / linting caches
+.mypy_cache/
+.ruff_cache/
+
+# Test artefacts
+.coverage
+.pytest_cache/
+htmlcov/
+coverage.xml
+
+# Build / packaging
+dist/
+build/
+src/*.egg-info/
+*.egg-info/
+
+# Runtime database files
+*.db
+*.sqlite3
