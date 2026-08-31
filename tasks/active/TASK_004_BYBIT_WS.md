@@ -1,4 +1,4 @@
-﻿# TASK CONTRACT
+# TASK CONTRACT
 # ═══════════════════════════════════════════════════════════════
 # Task ID:        T004
 # Task Name:      Bybit WebSocket Client
@@ -154,7 +154,10 @@ For every incoming kline WebSocket message:
 3. Set `is_closed` from the message's `"confirm"` field:
    - `"confirm": true` → `is_closed = True` (candle just closed)
    - `"confirm": false` → `is_closed = False` (candle updating mid-period)
-4. **Validate** the candle (DATA_CONTRACT.md §8) — discard and log if invalid
+4. **Validate** the candle per DATA_CONTRACT.md §8 and §10:
+   - OHLC violation or zero/negative price → discard; log **CRITICAL**
+   - Other validation failures → discard; log **ERROR**
+   - Do NOT raise — continue processing subsequent messages
 5. **Call `on_candle(candle)`** with the result — both forming and closed candles
 
 The caller (`CandleStore`, T005) decides whether to act on forming vs closed candles.
@@ -217,16 +220,23 @@ When stale topics are detected:
 Use `get_logger("market_data.ws")`:
 
 ```
-INFO:    Connected to WebSocket URL
-INFO:    Subscribed to N topics: [list]
-INFO:    Candle received — symbol, interval, is_closed, close_price
-INFO:    Reconnected — topics re-subscribed
-WARNING: Disconnect detected — reason, reconnect attempt N
-WARNING: Stale topic — symbol, interval, seconds_since_last_message
-WARNING: Invalid candle discarded — symbol, field, value
-ERROR:   BTC 4H topic stale — regime data at risk
-ERROR:   Candle callback raised exception — exception type and message
+INFO:     Connected to WebSocket URL
+INFO:     Subscribed to N topics: [list]
+INFO:     Candle received — symbol, interval, is_closed, close_price
+INFO:     Reconnected — topics re-subscribed
+WARNING:  Disconnect detected — reason, reconnect attempt N
+WARNING:  Stale topic — symbol, interval, seconds_since_last_message
+ERROR:    Candle validation failure (general) — symbol, field, value
+ERROR:    BTC 4H topic stale — regime data at risk
+ERROR:    Candle callback raised exception — exception type and message
+CRITICAL: OHLC violation (high < low, etc.) — symbol, field, value
+CRITICAL: Price = 0 or negative — symbol, field, value
 ```
+
+> **Correction (2026-08-31):** "Invalid candle discarded — WARNING" was a CTO authoring
+> error. DATA_CONTRACT.md §10 (higher authority) specifies CRITICAL for OHLC violations
+> and zero/negative prices. DATA_CONTRACT.md §8 specifies ERROR for other validation
+> failures. Specific cases in §10 override the general rule in §8.
 
 ### R-008 — Callback Exception Isolation
 

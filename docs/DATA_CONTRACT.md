@@ -1,4 +1,4 @@
-﻿# DATA_CONTRACT.md — A+ Scanner Data Contract
+# DATA_CONTRACT.md — A+ Scanner Data Contract
 # Version: 1.0 (GATE-1 APPROVED)
 # Authority: Lead CTO
 # Last Updated: 2026-08-31
@@ -193,7 +193,16 @@ assert candle.turnover >= 0
 assert candle.open_time is not None
 ```
 
-**On validation failure**: Discard candle, log ERROR, do not generate signal.
+**On validation failure**: Discard candle, do not generate signal.
+
+**Log severity** (read §8 and §10 together — §10 overrides for specific cases):
+
+| Failure | Log Level | Source |
+|---|---|---|
+| Price = 0 or negative | CRITICAL | §10 |
+| OHLC violation (high < low, etc.) | CRITICAL | §10 |
+| Any other §8 validation failure | ERROR | §8 |
+| Parse/normalization failure (bad row shape) | WARNING | §8 |
 
 ---
 
