@@ -176,3 +176,50 @@ DEFERRED — combine T003 + T004 into `skills/bybit-market-data/SKILL.md` after 
 T005 (CandleStore + UniverseManager) activates after T004 is also APPROVED.
 
 ---
+
+## [0.4.0] 2026-08-31
+
+### T004 APPROVED — Bybit WebSocket Client
+
+**Agent**: Codex (implementation) | Gemini (adversarial review) | CTO Opus (final review)
+**Release Decision**: APPROVED
+**Tests**: 62 full suite / 18 T004-specific — 0 failed | WS client coverage: 82%
+
+#### Files Created by Codex
+
+- `src/scanner/market_data/bybit_ws.py` — resilient async Bybit V5 WS client (387 lines)
+  - `BybitWebSocketClient`: subscribe/unsubscribe, run_forever, stop
+  - `_WebSocketTransport` Protocol: enables mocked testing without monkey-patching
+  - Reconnect: exponential backoff (1s→30s cap), unlimited retries, re-subscribe on reconnect
+  - Ping/pong: 20s interval, 5s pong timeout triggers reconnect
+  - Three-tier validation: CRITICAL (OHLC/price=0) / ERROR (volume) / WARNING (parse)
+  - `is_closed` NOT validated at transport layer — forming candles emitted faithfully
+  - BTC 4H stale → ERROR; other stale → WARNING
+  - Callback exception isolation: WS loop never crashes from on_candle errors
+- `src/scanner/market_data/stale_detector.py` — `StaleStreamDetector` (50 lines)
+- `tests/unit/test_bybit_ws.py` — 18 mocked unit tests
+- `tests/fixtures/bybit_ws_kline_message.json`
+- `tests/fixtures/bybit_ws_kline_closed.json`
+
+#### Contract Corrections During Implementation (3 CTO authoring errors)
+
+1. R-007 severity: WARNING → CRITICAL (OHLC/price=0) + ERROR (general) per DATA_CONTRACT.md §10/§8
+2. R-003: `is_closed` excluded from transport validation; forming candles are valid
+3. DATA_CONTRACT.md §8: clarified pipeline scope; added severity table with `Applies To` column
+
+#### Review Artifacts
+
+- `reviews/gemini/TASK_004_RED_TEAM.md` — APPROVED (19 checks, 0 failures)
+- `reviews/opus/TASK_004_FINAL_REVIEW.md` — APPROVED (17 checks, 0 failures)
+
+#### Open Items for Downstream
+
+- Verify `"BTCUSDT"` symbol naming matches Bybit perpetual naming (T005/T007)
+- Integration tests against testnet WS required before paper trading
+- T003-PATCH-001: fix CRITICAL log severity for REST client OHLC/zero-price cases
+
+#### Next
+
+T003-PATCH-001 (non-blocking fix), then T005 (CandleStore + UniverseManager).
+
+---

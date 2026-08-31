@@ -1,0 +1,19 @@
+{
+  "topic": "kline.60.SOLUSDT",
+  "type": "snapshot",
+  "ts": 1788130800000,
+  "data": [{
+    "start": 1788127200000,
+    "end": 1788130799999,
+    "interval": "60",
+    "open": "152.12345678",
+    "close": "154.87654321",
+    "high": "155.00000001",
+    "low": "151.00000001",
+    "volume": "12345.6789",
+    "turnover": "1890123.4567",
+    "confirm": true,
+    "timestamp": 1788130800000,
+    "symbol": "SOLUSDT"
+  }]
+}
