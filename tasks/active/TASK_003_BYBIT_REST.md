@@ -1,4 +1,4 @@
-﻿# TASK CONTRACT
+# TASK CONTRACT
 # ═══════════════════════════════════════════════════════════════
 # Task ID:        T003
 # Task Name:      Bybit REST Client
@@ -66,14 +66,20 @@ No order placement. No account endpoints. No WebSocket (that is T004).
 ## 5. Allowed Files / Directories
 
 ```
-src/scanner/market_data/__init__.py          NEW
-src/scanner/market_data/bybit_rest.py        NEW
-src/scanner/market_data/models.py            NEW
-tests/unit/test_bybit_rest.py               NEW
-tests/fixtures/bybit_candles_response.json   NEW
+src/scanner/market_data/__init__.py            NEW
+src/scanner/market_data/bybit_rest.py          NEW
+src/scanner/market_data/models.py              NEW
+tests/unit/test_bybit_rest.py                 NEW
+tests/fixtures/bybit_candles_response.json     NEW
 tests/fixtures/bybit_instruments_response.json NEW
-tests/fixtures/bybit_tickers_response.json   NEW
+tests/fixtures/bybit_tickers_response.json     NEW
+pyproject.toml                                 MODIFIED — add respx to [dev] only
 ```
+
+> **Note (contract correction 2026-08-31):** `pyproject.toml` was omitted from this
+> section in the original contract. This was a CTO authoring error. Codex is authorized
+> to add `respx>=0.20,<1.0` to `[project.optional-dependencies] dev` only.
+> No other changes to `pyproject.toml` are permitted.
 
 ---
 
