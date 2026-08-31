@@ -1,0 +1,15 @@
+{
+  "retCode": 0,
+  "retMsg": "OK",
+  "result": {
+    "category": "linear",
+    "list": [
+      {"symbol": "ETHUSDT", "turnover24h": "75000000"},
+      {"symbol": "SOLUSDT", "turnover24h": "55000000"},
+      {"symbol": "XRPUSDT", "turnover24h": "125000000"},
+      {"symbol": "LOWUSDT", "turnover24h": "49999999"},
+      {"symbol": "BTCUSDT", "turnover24h": "10"},
+      {"symbol": "BTCUSD", "turnover24h": "90000000"}
+    ]
+  }
+}

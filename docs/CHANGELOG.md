@@ -241,3 +241,45 @@ Files modified: `bybit_rest.py` (~4 lines), `test_bybit_rest.py` (3 new tests).
 T005 (CandleStore + UniverseManager) now unblocked.
 
 ---
+
+## [0.5.0] 2026-08-31
+
+### T005 APPROVED — CandleStore + UniverseManager
+
+**Agent**: Codex (implementation) | Gemini (adversarial review) | CTO Opus (final review)
+**Release Decision**: APPROVED
+**Tests**: 91 full suite / 26 T005-specific — 0 failed | Coverage: 96%
+
+#### Files Created by Codex
+
+- `src/scanner/candle_store/__init__.py`
+- `src/scanner/candle_store/candle_store.py` — 208 lines
+  - `CandleStore`: initialize (REST pre-fill + WS subscribe), run_forever, stop
+  - `on_candle` callback: forming → separate dict; closed → dedup + gap check + FIFO buffer
+  - `get_closed_candles()`: strategy boundary; defensive is_closed enforcement
+  - `get_forming_candle()`: display-only; not part of strategy interface
+  - `is_ready()`: warmup guard for T006/T007
+  - Gap detection: `(elapsed_ms // interval_ms) - 1`; REST fill with `end_time_ms - 1`
+  - BTC prefill failure → ERROR; other symbols → WARNING
+- `src/scanner/candle_store/universe_manager.py` — 70 lines
+  - `UniverseManager`: volume filter (Decimal comparison), BTCUSDT force-include
+  - `excluded_symbols: frozenset[str]` param for configurable exclusion
+  - `UniverseRefreshError` on failure with no cache; WARNING + cache return otherwise
+- `tests/unit/test_candle_store.py` + `test_universe_manager.py`
+- `tests/fixtures/bybit_tickers_universe.json`
+
+#### Review Artifacts
+
+- `reviews/gemini/TASK_005_RED_TEAM.md` — APPROVED (19 checks, 0 failures)
+- `reviews/opus/TASK_005_FINAL_REVIEW.md` — APPROVED (18 checks, 0 failures)
+
+#### Open Items for Downstream
+
+- Confirm "BTCUSDT" matches Bybit BTC perpetual naming (T007)
+- `is_ready()` must be called before indicator computation (T006)
+
+#### Next
+
+T006 (Indicators) + T007 (RegimeDetector) in parallel.
+
+---
