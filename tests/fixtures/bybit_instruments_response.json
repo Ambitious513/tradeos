@@ -1,0 +1,20 @@
+{
+  "retCode": 0,
+  "retMsg": "OK",
+  "result": {
+    "category": "linear",
+    "list": [
+      {
+        "symbol": "SOLUSDT",
+        "contractType": "LinearPerpetual",
+        "status": "Trading",
+        "baseCoin": "SOL",
+        "quoteCoin": "USDT",
+        "priceFilter": {"tickSize": "0.001"},
+        "lotSizeFilter": {"qtyStep": "0.1", "minOrderQty": "0.1"},
+        "leverageFilter": {"maxLeverage": "50"}
+      }
+    ]
+  },
+  "time": 1788130800000
+}

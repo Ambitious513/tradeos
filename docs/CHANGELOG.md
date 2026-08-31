@@ -127,3 +127,52 @@ Added `docs/AGENT_WORKFLOW.md` and `docs/TASK_CONTRACT_STANDARD.md`.
 Updated `AGENTS.md` to v1.1 with Task Contract workflow in Article 8.
 
 ---
+
+## [0.3.0] 2026-08-31
+
+### T003 APPROVED — Bybit REST Client
+
+**Agent**: Codex (implementation) | Gemini (adversarial review) | CTO Opus (final review)
+**Release Decision**: APPROVED
+**Tests**: 44 full suite / 22 T003-specific — 0 failed | REST client coverage: 80%
+
+#### Files Created by Codex
+
+- `src/scanner/market_data/__init__.py`
+- `src/scanner/market_data/bybit_rest.py` — async Bybit V5 REST client (511 lines)
+  - `BybitRESTClient`: `get_klines()`, `get_instruments_info()`, `get_tickers_24h()`, `get_server_time()`
+  - `BybitAPIError` exception
+  - `_EndpointRateLimiter`: per-endpoint asyncio lock with conservative intervals
+  - Tenacity retry policy: 3 attempts, exponential backoff, 4xx not retried
+  - Testnet safety guard: `bybit_testnet=False` requires `environment="live"`
+  - Candle validation: parse failure → WARNING; OHLC violation → ERROR (per DATA_CONTRACT.md §8)
+- `src/scanner/market_data/models.py` — `SymbolInfo`, `Ticker24H` frozen dataclasses
+- `tests/unit/test_bybit_rest.py` — 22 mocked unit tests
+- `tests/fixtures/bybit_candles_response.json`
+- `tests/fixtures/bybit_instruments_response.json`
+- `tests/fixtures/bybit_tickers_response.json`
+
+#### Files Modified by Codex
+
+- `pyproject.toml` — added `respx>=0.20,<1.0` to dev dependencies (authorized in contract)
+
+#### Contract Corrections During Implementation
+
+Two CTO authoring errors were identified and correctly escalated by Codex:
+1. `pyproject.toml` missing from Section 5 Allowed Files → corrected; added
+2. Candle validation log severity WARNING→ERROR conflict with DATA_CONTRACT.md §8 → ruled ERROR
+
+#### Review Artifacts
+
+- `reviews/gemini/TASK_003_RED_TEAM.md` — APPROVED (15 checks, 0 failures)
+- `reviews/opus/TASK_003_FINAL_REVIEW.md` — APPROVED (15 checks, 0 failures)
+
+#### Skill Extraction
+
+DEFERRED — combine T003 + T004 into `skills/bybit-market-data/SKILL.md` after T004 approved.
+
+#### Next
+
+T005 (CandleStore + UniverseManager) activates after T004 is also APPROVED.
+
+---

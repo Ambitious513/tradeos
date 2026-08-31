@@ -1,0 +1,19 @@
+{
+  "retCode": 0,
+  "retMsg": "OK",
+  "result": {
+    "category": "linear",
+    "list": [
+      {
+        "symbol": "SOLUSDT",
+        "lastPrice": "154.87654321",
+        "highPrice24h": "160.00000000",
+        "lowPrice24h": "145.00000000",
+        "volume24h": "200000.1234",
+        "turnover24h": "30456789.1234",
+        "price24hPcnt": "0.055"
+      }
+    ]
+  },
+  "time": 1788130800000
+}
