@@ -154,11 +154,18 @@ For every incoming kline WebSocket message:
 3. Set `is_closed` from the message's `"confirm"` field:
    - `"confirm": true` → `is_closed = True` (candle just closed)
    - `"confirm": false` → `is_closed = False` (candle updating mid-period)
-4. **Validate** the candle per DATA_CONTRACT.md §8 and §10:
-   - OHLC violation or zero/negative price → discard; log **CRITICAL**
-   - Other validation failures → discard; log **ERROR**
-   - Do NOT raise — continue processing subsequent messages
+4. **Validate OHLC integrity only** — do NOT check `is_closed` at this layer:
+   - OHLC violation or zero/negative price → discard; log **CRITICAL** (per §10)
+   - Other OHLC/volume failures → discard; log **ERROR** (per §8)
+   - `is_closed` is intentionally excluded from WS-layer validation — forming
+     candles (`is_closed=False`) are valid transport updates and must be emitted
 5. **Call `on_candle(candle)`** with the result — both forming and closed candles
+
+> **Architecture note:** The `is_closed == True` rule in DATA_CONTRACT.md §8 applies
+> to the **strategy pipeline** (T008+), not to the transport layer.
+> The WebSocket client is a transport — it emits faithfully.
+> CandleStore (T005) is responsible for filtering forming vs closed candles
+> before passing to strategy modules.
 
 The caller (`CandleStore`, T005) decides whether to act on forming vs closed candles.
 The WebSocket client emits ALL updates — filtering is the caller's responsibility.

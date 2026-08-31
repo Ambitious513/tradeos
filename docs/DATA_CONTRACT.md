@@ -177,11 +177,11 @@ It may be added in a future version for:
 
 ## 8. DATA VALIDATION RULES
 
-Every candle entering the pipeline must pass:
+Every candle entering the **strategy pipeline** must pass:
 
 ```python
-# Required validations:
-assert candle.is_closed == True
+# Required validations (applied at strategy pipeline entry — T008+):
+assert candle.is_closed == True   # ← strategy pipeline only; NOT transport layer
 assert candle.open > 0
 assert candle.high >= candle.open
 assert candle.high >= candle.close
@@ -193,16 +193,24 @@ assert candle.turnover >= 0
 assert candle.open_time is not None
 ```
 
+> **Scope of `is_closed == True`:**
+> This rule applies at the **strategy pipeline entry** (T008+) and in the REST client
+> (which only returns closed candles). It does NOT apply to the WebSocket transport
+> layer (T004). The WS client receives and emits both forming (`is_closed=False`) and
+> closed (`is_closed=True`) candles faithfully. CandleStore (T005) is responsible for
+> filtering forming candles before passing to strategy modules.
+
 **On validation failure**: Discard candle, do not generate signal.
 
 **Log severity** (read §8 and §10 together — §10 overrides for specific cases):
 
-| Failure | Log Level | Source |
+| Failure | Log Level | Applies To |
 |---|---|---|
-| Price = 0 or negative | CRITICAL | §10 |
-| OHLC violation (high < low, etc.) | CRITICAL | §10 |
-| Any other §8 validation failure | ERROR | §8 |
-| Parse/normalization failure (bad row shape) | WARNING | §8 |
+| Price = 0 or negative | CRITICAL | Transport + strategy pipeline |
+| OHLC violation (high < low, etc.) | CRITICAL | Transport + strategy pipeline |
+| Any other §8 validation failure | ERROR | Transport + strategy pipeline |
+| Parse/normalization failure (bad row shape) | WARNING | Transport + strategy pipeline |
+| `is_closed == False` at strategy pipeline entry | ERROR | Strategy pipeline only (not WS transport) |
 
 ---
 
