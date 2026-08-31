@@ -223,3 +223,21 @@ T005 (CandleStore + UniverseManager) activates after T004 is also APPROVED.
 T003-PATCH-001 (non-blocking fix), then T005 (CandleStore + UniverseManager).
 
 ---
+
+## [0.4.1] 2026-08-31
+
+### T003-PATCH-001 APPROVED — REST Client CRITICAL Severity Fix
+
+**Agent**: Codex | **Reviewer**: CTO self-review (patch < 20 lines)
+**Release Decision**: APPROVED
+**Tests**: 65 full suite / 25 REST-specific — 0 failed
+
+Corrected `bybit_rest.py` `_normalize_candle()`: OHLC violations and
+zero/negative price now log `CRITICAL` per DATA_CONTRACT.md §10.
+Volume/turnover failures remain `ERROR`. Discard behavior unchanged.
+
+Files modified: `bybit_rest.py` (~4 lines), `test_bybit_rest.py` (3 new tests).
+
+T005 (CandleStore + UniverseManager) now unblocked.
+
+---

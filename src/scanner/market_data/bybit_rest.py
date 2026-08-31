@@ -441,7 +441,12 @@ class BybitRESTClient:
 
         invalid_field = self._invalid_candle_field(candle)
         if invalid_field is not None:
-            logger.error(
+            log_method = (
+                logger.critical
+                if invalid_field in {"open", "high", "low"}
+                else logger.error
+            )
+            log_method(
                 "candle_validation_failed",
                 symbol=symbol,
                 field=invalid_field,

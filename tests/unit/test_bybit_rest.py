@@ -45,7 +45,9 @@ def test_mainnet_blocked_in_dev() -> None:
     """Development cannot silently connect to Bybit mainnet."""
     with pytest.raises(RuntimeError, match="requires environment='live'"):
         BybitRESTClient(
-            ScannerConfig(_env_file=None, bybit_testnet=False, environment="development")
+            ScannerConfig(
+                _env_file=None, bybit_testnet=False, environment="development"
+            )
         )
 
 
@@ -105,7 +107,7 @@ async def test_candles_sorted_ascending() -> None:
 
 @pytest.mark.asyncio
 async def test_invalid_candle_ohlc_violation_discarded() -> None:
-    """An invalid high/low row is discarded and reported at ERROR level."""
+    """An invalid high/low row is discarded and reported at CRITICAL level."""
     payload = fixture_payload("bybit_candles_response.json")
     rows = payload["result"]["list"]  # type: ignore[index]
     rows.append(["1788120000000", "100", "90", "95", "99", "1", "100"])  # type: ignore[union-attr]
@@ -115,17 +117,17 @@ async def test_invalid_candle_ohlc_violation_discarded() -> None:
             candles = await client.get_klines("SOLUSDT", "60")
     assert len(candles) == 2
     assert any(
-        log["event"] == "candle_validation_failed" and log["log_level"] == "error"
+        log["event"] == "candle_validation_failed" and log["log_level"] == "critical"
         for log in logs
     )
 
 
 @pytest.mark.asyncio
 async def test_invalid_candle_logs_error() -> None:
-    """AC-021: every discarded invalid candle emits an ERROR-level event."""
+    """A non-critical turnover failure remains an ERROR-level event."""
     payload = fixture_payload("bybit_candles_response.json")
     rows = payload["result"]["list"]  # type: ignore[index]
-    rows.append(["1788120000000", "0", "1", "0", "1", "1", "1"])  # type: ignore[union-attr]
+    rows.append(["1788120000000", "1", "1", "1", "1", "1", "-1"])  # type: ignore[union-attr]
     async with BybitRESTClient(ScannerConfig(_env_file=None)) as client:
         with capture_logs() as logs, respx.mock() as mock:
             mock.get(f"{TESTNET_BASE_URL}{KLINE_ENDPOINT}").respond(200, json=payload)
@@ -151,6 +153,42 @@ async def test_invalid_candle_zero_price_discarded() -> None:
 
 
 @pytest.mark.asyncio
+async def test_invalid_candle_logs_critical() -> None:
+    """AC-021: OHLC violations are logged at CRITICAL severity."""
+    payload = fixture_payload("bybit_candles_response.json")
+    payload["result"]["list"].append(["1788120000000", "2", "1", "1.5", "2", "1", "1"])  # type: ignore[index,union-attr]
+    async with BybitRESTClient(ScannerConfig(_env_file=None)) as client:
+        with capture_logs() as logs, respx.mock() as mock:
+            mock.get(f"{TESTNET_BASE_URL}{KLINE_ENDPOINT}").respond(200, json=payload)
+            await client.get_klines("SOLUSDT", "60")
+    assert any(log["log_level"] == "critical" for log in logs)
+
+
+@pytest.mark.asyncio
+async def test_zero_price_logs_critical() -> None:
+    """AC-022: zero opening prices are logged at CRITICAL severity."""
+    payload = fixture_payload("bybit_candles_response.json")
+    payload["result"]["list"].append(["1788120000000", "0", "1", "0", "1", "1", "1"])  # type: ignore[index,union-attr]
+    async with BybitRESTClient(ScannerConfig(_env_file=None)) as client:
+        with capture_logs() as logs, respx.mock() as mock:
+            mock.get(f"{TESTNET_BASE_URL}{KLINE_ENDPOINT}").respond(200, json=payload)
+            await client.get_klines("SOLUSDT", "60")
+    assert any(log["log_level"] == "critical" for log in logs)
+
+
+@pytest.mark.asyncio
+async def test_negative_volume_logs_error() -> None:
+    """AC-023: negative volume is discarded with ERROR severity, not CRITICAL."""
+    payload = fixture_payload("bybit_candles_response.json")
+    payload["result"]["list"].append(["1788120000000", "1", "1", "1", "1", "-1", "1"])  # type: ignore[index,union-attr]
+    async with BybitRESTClient(ScannerConfig(_env_file=None)) as client:
+        with capture_logs() as logs, respx.mock() as mock:
+            mock.get(f"{TESTNET_BASE_URL}{KLINE_ENDPOINT}").respond(200, json=payload)
+            await client.get_klines("SOLUSDT", "60")
+    assert any(log["log_level"] == "error" for log in logs)
+
+
+@pytest.mark.asyncio
 async def test_empty_klines_response() -> None:
     """An empty Bybit list returns an empty result safely."""
     payload = {"retCode": 0, "retMsg": "OK", "result": {"list": []}}
@@ -166,7 +204,9 @@ async def test_get_instruments_info_parses() -> None:
     payload = fixture_payload("bybit_instruments_response.json")
     async with BybitRESTClient(ScannerConfig(_env_file=None)) as client:
         with respx.mock() as mock:
-            mock.get(f"{TESTNET_BASE_URL}{INSTRUMENTS_ENDPOINT}").respond(200, json=payload)
+            mock.get(f"{TESTNET_BASE_URL}{INSTRUMENTS_ENDPOINT}").respond(
+                200, json=payload
+            )
             instruments = await client.get_instruments_info("SOLUSDT")
     assert instruments[0].tick_size.as_tuple().exponent == -3
     assert instruments[0].contract_type == "LinearPerpetual"
@@ -234,7 +274,9 @@ async def test_400_raises_immediately_no_retry() -> None:
     """Bad requests are logged and surfaced without an unsafe retry."""
     async with BybitRESTClient(ScannerConfig(_env_file=None)) as client:
         with respx.mock() as mock:
-            route = mock.get(f"{TESTNET_BASE_URL}{KLINE_ENDPOINT}").respond(400, text="bad")
+            route = mock.get(f"{TESTNET_BASE_URL}{KLINE_ENDPOINT}").respond(
+                400, text="bad"
+            )
             with pytest.raises(BybitAPIError) as error:
                 await client.get_klines("SOLUSDT", "60")
     assert error.value.status_code == 400
@@ -246,7 +288,9 @@ async def test_json_parse_error_raises() -> None:
     """Malformed JSON is never silently treated as valid market data."""
     async with BybitRESTClient(ScannerConfig(_env_file=None)) as client:
         with respx.mock() as mock:
-            mock.get(f"{TESTNET_BASE_URL}{KLINE_ENDPOINT}").respond(200, content=b"not json")
+            mock.get(f"{TESTNET_BASE_URL}{KLINE_ENDPOINT}").respond(
+                200, content=b"not json"
+            )
             with pytest.raises(BybitAPIError, match="invalid JSON"):
                 await client.get_klines("SOLUSDT", "60")
 
