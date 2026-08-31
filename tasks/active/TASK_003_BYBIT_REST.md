@@ -231,10 +231,15 @@ HTTP timeout (>10s):   retry per R-006; if all attempts fail → raise BybitAPIE
 HTTP 5xx:             retry per R-006; if all attempts fail → raise BybitAPIError
 HTTP 429:             wait + retry; log WARNING
 HTTP 400/401/403:     log ERROR with full context; raise BybitAPIError immediately
-Candle validation fail: discard that candle; log WARNING; continue with rest
+Candle validation fail: discard that candle; log ERROR; continue with rest
 Empty response:        return empty list; log WARNING
 JSON parse error:     log ERROR; raise BybitAPIError
 ```
+
+> **Correction (2026-08-31):** Candle validation failure was previously listed as WARNING.
+> Corrected to ERROR per DATA_CONTRACT.md §8 ("log ERROR").
+> DATA_CONTRACT.md is the higher-authority document (AGENTS.md Article 2, Level 3).
+> A structurally invalid candle (e.g., high < low) is anomalous, not routine degradation.
 
 ### R-008 — BybitAPIError Exception
 
@@ -254,12 +259,12 @@ class BybitAPIError(Exception):
 Every significant event must be logged via `get_logger("market_data.rest")`:
 
 ```
-INFO:  Successful fetch — symbol, endpoint, candle count, latency_ms
+INFO:    Successful fetch — symbol, endpoint, candle count, latency_ms
 WARNING: Retry attempt — attempt number, exception type, wait_seconds
-WARNING: Candle validation failure — symbol, field, value
 WARNING: Empty response — symbol, endpoint
-ERROR: Non-retryable HTTP error — status_code, endpoint, body excerpt
-ERROR: JSON parse failure — endpoint
+ERROR:   Candle validation failure — symbol, field, value, rule violated
+ERROR:   Non-retryable HTTP error — status_code, endpoint, body excerpt
+ERROR:   JSON parse failure — endpoint
 ```
 
 ### R-010 — Context Manager Support
@@ -341,6 +346,7 @@ These paths must remain stable after delivery.
 | AC-018 | `mypy src/ --strict` passes | CI lint |
 | AC-019 | `pytest tests/unit/test_bybit_rest.py` — all pass | CI test |
 | AC-020 | No live network calls in unit tests | all HTTP mocked via `respx` or `httpx.MockTransport` |
+| AC-021 | Candle validation failure logged at ERROR (not WARNING) | `test_bybit_rest.py::test_invalid_candle_logs_error` |
 
 ---
 
