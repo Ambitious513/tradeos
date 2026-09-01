@@ -348,3 +348,35 @@ T007 (RegimeDetector) — now unblocked.
 T008 (SetupDetector), T009, T010 — strategy modules now unblocked.
 
 ---
+
+## [0.8.0] 2026-09-01
+
+### T008 APPROVED — SetupDetector (Pure Detection Layer)
+
+**Agent**: Codex | **Sonnet** (quant) | **Gemini** (adversarial) | **CTO Opus** (final)
+**Release Decision**: APPROVED
+**Tests**: 172 full suite / 42 T008-specific — 0 failed
+
+#### Files Created
+
+- `src/scanner/strategy/setup_detector.py` — 256 lines; 16 pure functions + SetupContext
+  - All SHORT-001..009 and LONG-001..010 rules implemented
+  - Module-level Decimal constants; zero guards on all denominators
+  - `detect_initial_conditions()`: warmup 28+, all 3 conditions gate
+  - Stop SHORT: MAX(structural, ATR); Stop LONG: MIN(structural, ATR)
+  - TP: 2:1 R:R; R:R guard; avg volume helper for T009
+  - No logging, no I/O, no state — pure functions
+- `src/scanner/strategy/__init__.py`
+- `tests/unit/test_setup_detector.py` — 42 tests
+
+#### Review Artifacts
+
+- `reviews/sonnet/TASK_008_QUANT_REVIEW.md` — APPROVED
+- `reviews/gemini/TASK_008_RED_TEAM.md` — APPROVED
+- `reviews/opus/TASK_008_FINAL_REVIEW.md` — APPROVED
+
+#### Next
+
+T009 (ScoreEngine) — now unblocked.
+
+---
