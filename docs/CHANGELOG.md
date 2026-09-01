@@ -446,3 +446,30 @@ T010 (SignalManager) — now unblocked.
 T012 (ScanLoop) — now unblocked.
 
 ---
+
+## [0.11.0] 2026-09-01
+
+### T011 APPROVED — RiskEngine
+
+**Agent**: Codex | **Sonnet** (quant) | **Gemini** (adversarial) | **CTO Opus** (final)
+**Release Decision**: APPROVED
+**Tests**: 256 full suite / 30 T011-specific — 0 failed
+
+#### Files Created
+
+- `src/scanner/risk/risk_engine.py` — 301 lines; pure Decimal sizing + viability
+  - 8-step position sizing (RISK_SPEC §2); floor qty, conservative price rounding
+  - CTO ruling applied: SHORT TP ceil, LONG TP floor (toward entry)
+  - Double geometry check: pre-rounding + post-rounding
+  - effective_risk > 1.5× → WARNING (calculate) + hard reject (viability)
+  - Daily limits: inclusive >= / <= boundaries; is_halted checked first
+  - approve() + calculate(): bare except → RiskDecision(False); never raises
+  - Config fields: risk_per_trade_usd, taker_fee_rate confirmed
+- `src/scanner/risk/__init__.py`
+- `tests/unit/test_risk_engine.py` — 30 tests
+
+#### Next
+
+T012 (ScanLoop) — now unblocked.
+
+---

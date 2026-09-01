@@ -2,7 +2,7 @@
 # ═══════════════════════════════════════════════════════════════
 # Task ID:        T011
 # Task Name:      RiskEngine — Position Sizing and Daily Limits
-# Status:         READY
+# Status:         APPROVED — 2026-09-01
 # Priority:       P1
 # Owner Agent:    CODEX
 # Reviewer:       SONNET (quant), GEMINI (adversarial), CTO (final)
@@ -460,3 +460,4 @@ Recommended Next Step: T012 (ScanLoop)
 ---
 
 *End of Task Contract — T011 RiskEngine*
+
