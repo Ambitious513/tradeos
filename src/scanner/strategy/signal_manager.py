@@ -16,11 +16,11 @@ from uuid import UUID, uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from scanner.candle_store.candle_store import CandleStore
 from scanner.config import ScannerConfig
 from scanner.database.signal_writer import SignalWriter
 from scanner.logging_setup import get_logger
 from scanner.models import TERMINAL_STATES, Candle, Direction, Regime, SignalState
+from scanner.protocols import CandleProvider
 from scanner.strategy.score_engine import ScoreInput, compute_score, is_a_plus
 from scanner.strategy.setup_detector import (
     SetupContext,
@@ -92,7 +92,7 @@ class SignalManager:
 
     def __init__(
         self,
-        candle_store: CandleStore,
+        candle_store: CandleProvider,
         session_factory: Callable[[], AsyncContextManager[AsyncSession]],
         config: ScannerConfig,
     ) -> None:

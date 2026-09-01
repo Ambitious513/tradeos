@@ -3,11 +3,11 @@
 from datetime import UTC, datetime
 from decimal import Decimal
 
-from scanner.candle_store.candle_store import CandleStore
 from scanner.config import ScannerConfig
 from scanner.indicators import ema
 from scanner.logging_setup import get_logger
 from scanner.models import Regime
+from scanner.protocols import CandleProvider
 
 logger = get_logger("regime.detector")
 
@@ -19,7 +19,7 @@ class RegimeDetector:
     PRIMARY_INTERVAL = "240"
     MIN_CANDLES = 200
 
-    def __init__(self, candle_store: CandleStore, config: ScannerConfig) -> None:
+    def __init__(self, candle_store: CandleProvider, config: ScannerConfig) -> None:
         """Create a detector backed by the current in-memory candle store."""
         self._candle_store = candle_store
         self._neutral_threshold = Decimal(str(config.btc_neutral_threshold_pct))

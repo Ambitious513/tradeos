@@ -534,3 +534,41 @@ TP PnL `+$` prefix cosmetic fix: replace with `f"${net_pnl:+.4f}"`. Authorized.
 All T001-T013 APPROVED. v1.1 tasks T014+ BLOCKED on human decisions.
 
 ---
+
+## [0.14.0] 2026-09-01
+
+### T014 APPROVED — Backtest Engine
+
+**Agent**: Codex | **Sonnet** (look-ahead bias — mandatory) | **Gemini** (adversarial) | **CTO Opus** (final)
+**Release Decision**: APPROVED
+**Tests**: 352 full suite / 41 T014-specific — 0 failed
+
+#### Files Created
+
+- `src/scanner/protocols.py` — CandleProvider Protocol (structural typing for DI)
+- `src/scanner/backtest/backtest_engine.py` — 657 lines
+  - _BacktestBuffer: irreversible sequential advance (deque, ValueError on rewind)
+  - _BacktestCandleStore: buffer-backed CandleProvider adapter
+  - _NullAsyncSession + @asynccontextmanager factory: DB isolation
+  - BacktestEngine.run(): sequential replay, null DB, look-ahead safe
+  - _advance_btc_to: close_time-based guard (open_time + 4H > target_time)
+  - _record_trade: Decimal-only PnL (gross - fee - slippage)
+  - _compute_metrics: win_rate, profit_factor, expectancy, avg_r, max_drawdown, Sharpe
+  - _sharpe_ratio: 365-day annualized from UTC-date grouped daily PnL
+
+#### Authorized Patches
+
+- `src/scanner/regime/detector.py` — CandleStore → CandleProvider (2 lines)
+- `src/scanner/strategy/signal_manager.py` — same (2 lines)
+
+#### CTO Look-Ahead Fix (from Sonnet audit L-03)
+
+Bug: `open_time > target_time` allowed 4H BTC candle (closes T+4H) into buffer at T.
+Fix: `close_time > target_time` where `close_time = open_time + _BTC_CANDLE_DURATION`.
+Two test assertions updated to reflect correct semantics.
+
+#### GATE-2 Pending
+
+Human must review real historical backtest output before Paper Trading (T015).
+
+---
