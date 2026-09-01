@@ -380,3 +380,33 @@ T008 (SetupDetector), T009, T010 — strategy modules now unblocked.
 T009 (ScoreEngine) — now unblocked.
 
 ---
+
+## [0.9.0] 2026-09-01
+
+### T009 APPROVED — ScoreEngine
+
+**Agent**: Codex | **Sonnet** (quant) | **Gemini** (adversarial) | **CTO Opus** (final)
+**Release Decision**: APPROVED
+**Tests**: 196 full suite / 24 T009-specific — 0 failed | Coverage: 96%
+
+#### Files Created / Modified
+
+- `src/scanner/strategy/score_engine.py` — 138 lines
+  - `ScoreInput` frozen dataclass (7 fields)
+  - `compute_score(ScoreInput) -> int`: all 8 SCORE-001 criteria
+  - `is_a_plus(int) -> bool`: threshold >= 80
+  - `_score_decimal_tiers()`: unified highest-tier helper
+  - Score bounds: [20, 100]; volume None → 0 pts; doji → 0 pts; zero-risk → 0 pts
+- `src/scanner/strategy/__init__.py` — updated exports
+
+#### Design Note
+
+ScoreInput was added via CTO ruling after Codex correctly escalated:
+SetupContext carries DETECTED-state values only; rejection candle, volume,
+sweep/excess, and entry/stop/TP are supplied separately at score-computation time.
+
+#### Next
+
+T010 (SignalManager) — now unblocked.
+
+---

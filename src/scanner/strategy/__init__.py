@@ -1,5 +1,6 @@
 """Pure strategy setup-detection helpers."""
 
+from scanner.strategy.score_engine import ScoreInput, compute_score, is_a_plus
 from scanner.strategy.setup_detector import (
     SetupContext,
     check_24h_level_interaction,
@@ -38,4 +39,7 @@ __all__ = [
     "compute_take_profit",
     "check_minimum_rr",
     "compute_avg_volume",
+    "ScoreInput",
+    "compute_score",
+    "is_a_plus",
 ]
