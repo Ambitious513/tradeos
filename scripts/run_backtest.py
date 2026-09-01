@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """GATE-2 Historical Backtest Runner — A+ Scanner v1.0.
 
 Runs BacktestEngine over two universe passes and prints a structured report
@@ -43,8 +43,8 @@ from scanner.models import Candle
 
 _BYBIT_MAINNET_BASE   = "https://api.bybit.com"
 _INSTRUMENTS_URL      = f"{_BYBIT_MAINNET_BASE}/v5/market/instruments-info"
-_1H_DAYS              = 90
-_BTC_4H_DAYS          = 123
+_1H_DAYS              = 180
+_BTC_4H_DAYS          = 213
 _1H_CANDLES_NEEDED    = _1H_DAYS * 24
 _BTC_CANDLES_NEEDED   = _BTC_4H_DAYS * 6
 _BATCH_SIZE           = 1000
@@ -214,6 +214,53 @@ def _gate2_verdict(pass1: list[BacktestResult], pass2: list[BacktestResult]) -> 
     print("=" * 70)
 
 
+def _print_btc_regime_distribution(
+    btc_candles_4h: list[Candle], config: ScannerConfig
+) -> None:
+    """Classify every 4H BTC candle and print a regime frequency table.
+
+    This runs the approved RegimeDetector sequentially over the BTC buffer so
+    the caller sees exactly what fraction of the window was BULLISH, BEARISH,
+    NEUTRAL, or UNDEFINED before any symbol data is fetched.
+    """
+    # Import here to avoid circular issues when sys.path is not yet set.
+    from scanner.backtest.backtest_engine import _BacktestBuffer, _BacktestCandleStore
+    from scanner.regime.detector import RegimeDetector
+
+    buf   = _BacktestBuffer(max_size=250)
+    store = _BacktestCandleStore(buf)
+    det   = RegimeDetector(store, config)
+
+    counts: dict[str, int] = {"BULLISH": 0, "BEARISH": 0, "NEUTRAL": 0, "UNDEFINED": 0}
+    for candle in btc_candles_4h:
+        if candle.is_closed:
+            buf.advance(candle)
+        regime = det.classify()
+        key = regime.value if regime.value in counts else "UNDEFINED"
+        counts[key] += 1
+
+    total = max(sum(counts.values()), 1)
+    tradeable = counts["BULLISH"] + counts["BEARISH"]
+    pct_tradeable = tradeable / total * 100
+
+    print()
+    print("  -- BTC REGIME DISTRIBUTION (4H candles) --")
+    for label, count in counts.items():
+        bar = "#" * int(count / total * 30)
+        print(f"  {label:<10} {count:>4} candles  ({count/total*100:5.1f}%)  {bar}")
+    print(f"  Tradeable (BULLISH+BEARISH): {pct_tradeable:.1f}% of window")
+    if pct_tradeable < 15:
+        print(
+            "  WARNING: <15% of window is tradeable. "
+            "Consider testing over a different date range."
+        )
+    elif pct_tradeable < 30:
+        print("  NOTE: Low tradeable window. Signal count will be limited.")
+    else:
+        print("  Window contains adequate BULLISH/BEARISH time.")
+    print()
+
+
 async def _run_pass(
     rest: BybitRESTClient,
     config: ScannerConfig,
@@ -251,7 +298,7 @@ async def main() -> None:
     print("=" * 70)
     print("  A+ SCANNER -- GATE-2 BACKTEST RUNNER v1.0")
     print(f"  {datetime.now(UTC).strftime('%Y-%m-%d %H:%M UTC')}  |  "
-          f"90-day window  |  2 passes")
+          f"{_1H_DAYS}-day window  |  2 passes")
     print("=" * 70)
 
     config = ScannerConfig()
@@ -280,6 +327,11 @@ async def main() -> None:
             "  WARNING: Fewer than 200 BTC 4H candles available. "
             "Regime will be UNDEFINED throughout."
         )
+
+    # ── BTC Regime Distribution ────────────────────────────────────────────
+    # Show how much of the window was tradeable BEFORE spending time on symbols.
+    _print_btc_regime_distribution(btc_candles_4h, config)
+
 
     # Pass 1 -- New Listings
     print(
