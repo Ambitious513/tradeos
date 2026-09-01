@@ -283,3 +283,37 @@ T005 (CandleStore + UniverseManager) now unblocked.
 T006 (Indicators) + T007 (RegimeDetector) in parallel.
 
 ---
+
+## [0.6.0] 2026-09-01
+
+### T006 APPROVED — Technical Indicators
+
+**Agent**: Codex | **Sonnet** (quant) | **Gemini** (adversarial) | **CTO Opus** (final)
+**Release Decision**: APPROVED
+**Tests**: 111 full suite / 20 T006-specific — 0 failed | Coverage: 100%
+
+#### Files Created
+
+- `src/scanner/indicators/ema.py` — 32 lines; Decimal EMA with SMA seed; k=2/(period+1)
+- `src/scanner/indicators/rsi.py` — 46 lines; Wilder's Smoothed MA; Decimal internal; float return
+- `src/scanner/indicators/atr.py` — 36 lines; all three TR components; Wilder's Smoothed MA; Decimal
+- `src/scanner/indicators/__init__.py` — re-exports ema, rsi, atr
+- `tests/unit/test_indicators.py` — 20 tests; 100% coverage; hand-calculated known values
+
+#### Known Value Verification
+
+- EMA(5): `40` ✅
+- RSI(14): `69.76744...` ✅
+- ATR(3): `11/3 = 3.666...` ✅
+
+#### Review Artifacts
+
+- `reviews/sonnet/TASK_006_QUANT_REVIEW.md` — APPROVED (Wilder's formula confirmed)
+- `reviews/gemini/TASK_006_RED_TEAM.md` — APPROVED (all edge cases pass)
+- `reviews/opus/TASK_006_FINAL_REVIEW.md` — APPROVED
+
+#### Next
+
+T007 (RegimeDetector) — now unblocked.
+
+---
