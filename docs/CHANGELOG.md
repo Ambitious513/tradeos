@@ -504,3 +504,33 @@ _risk_calculations dict not pruned on CANCELLED/EXPIRED signals. Authorized fix:
 T013 (Alert Engine) — now unblocked.
 
 ---
+
+## [0.13.0] 2026-09-01
+
+### T013 APPROVED — Alert Engine
+
+**Agent**: Codex | **Gemini** (adversarial) | **CTO Opus** (final)
+**Release Decision**: APPROVED
+**Tests**: 311 full suite / 26 T013-specific — 0 failed
+
+#### Files Created
+
+- `src/scanner/alerting/alert_engine.py` — 270 lines
+  - _AlertChannel base + _TelegramChannel + _DiscordChannel subclasses
+  - AlertEngine: 4 events (triggered, opened, closed, halted)
+  - asyncio.gather(return_exceptions=True): channel independence
+  - 4xx -> _enabled=False for session; 5xx -> retry once
+  - Empty token/url -> None, silent skip
+  - Authorized: regime: Regime param in send_signal_triggered()
+  - All outer send_* methods: try/except Exception -> log only, never raise
+- `pyproject.toml` — aiohttp>=3.9,<4.0
+
+#### Deferred (F-01)
+
+TP PnL `+$` prefix cosmetic fix: replace with `f"${net_pnl:+.4f}"`. Authorized.
+
+#### Status
+
+All T001-T013 APPROVED. v1.1 tasks T014+ BLOCKED on human decisions.
+
+---

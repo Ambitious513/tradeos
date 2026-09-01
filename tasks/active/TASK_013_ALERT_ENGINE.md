@@ -2,7 +2,7 @@
 # ═══════════════════════════════════════════════════════════════
 # Task ID:        T013
 # Task Name:      Alert Engine — Telegram + Discord Signal Notifications
-# Status:         READY
+# Status:         APPROVED — 2026-09-01
 # Priority:       P1
 # Owner Agent:    CODEX
 # Reviewer:       GEMINI (failure isolation), CTO (final)
@@ -411,3 +411,4 @@ Recommended Next Step: Await v1.1 human decisions (T014 blocked).
 ---
 
 *End of Task Contract — T013 Alert Engine*
+
