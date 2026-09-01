@@ -224,16 +224,29 @@ class RiskEngine:
         direction: Direction,
         tick_size: Decimal,
     ) -> tuple[Decimal, Decimal]:
-        """Apply CTO-approved conservative stop and take-profit rounding."""
+        """Round stop away from entry; recompute TP from rounded stop, then round away.
+
+        RISK-001 fix (approved by human CTO 2026-09-01):
+          - Stop rounds away from entry (wider buffer).
+          - TP is recomputed from the rounded stop to preserve exactly 2.0 RR at
+            the tick level, then rounded further away from entry.
+          - This guarantees post-rounding RR >= 2.0 under all conditions.
+          SHORT: stop UP, TP DOWN (lower = further below entry = more reward)
+          LONG : stop DOWN, TP UP  (higher = further above entry = more reward)
+        """
         if direction is Direction.SHORT:
-            return (
-                self._round_price(stop_price, tick_size, "up"),
-                self._round_price(take_profit, tick_size, "up"),
-            )
-        return (
-            self._round_price(stop_price, tick_size, "down"),
-            self._round_price(take_profit, tick_size, "down"),
-        )
+            rounded_stop = self._round_price(stop_price, tick_size, "up")
+            stop_delta = rounded_stop - stop_price          # >= 0
+            adjusted_tp = take_profit - stop_delta * Decimal("2")  # preserve 2.0 RR
+            rounded_tp = self._round_price(adjusted_tp, tick_size, "down")
+            return rounded_stop, rounded_tp
+        # LONG
+        rounded_stop = self._round_price(stop_price, tick_size, "down")
+        stop_delta = stop_price - rounded_stop              # >= 0
+        adjusted_tp = take_profit + stop_delta * Decimal("2")
+        rounded_tp = self._round_price(adjusted_tp, tick_size, "up")
+        return rounded_stop, rounded_tp
+
 
     @staticmethod
     def _validate_price_geometry(

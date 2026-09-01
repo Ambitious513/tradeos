@@ -187,8 +187,8 @@ def test_long_stop_rounded_floor_to_tick() -> None:
     assert decision.calculation.stop_price == Decimal("97.9")
 
 
-def test_short_tp_rounded_ceil_to_tick() -> None:
-    """CTO-approved short TP rounding moves it closer to entry."""
+def test_short_tp_rounded_floor_to_tick() -> None:
+    """RISK-001 fix: short TP rounds DOWN (away from entry = more reward)."""
     decision = engine().calculate(
         Decimal("100"),
         Decimal("102"),
@@ -197,11 +197,11 @@ def test_short_tp_rounded_ceil_to_tick() -> None:
         symbol_info(tick_size="0.1"),
     )
     assert decision.calculation is not None
-    assert decision.calculation.take_profit == Decimal("96.1")
+    assert decision.calculation.take_profit == Decimal("96.0")
 
 
-def test_long_tp_rounded_floor_to_tick() -> None:
-    """CTO-approved long TP rounding moves it closer to entry."""
+def test_long_tp_rounded_ceil_to_tick() -> None:
+    """RISK-001 fix: long TP rounds UP (away from entry = more reward)."""
     decision = engine().calculate(
         Decimal("100"),
         Decimal("98"),
@@ -210,7 +210,7 @@ def test_long_tp_rounded_floor_to_tick() -> None:
         symbol_info(tick_size="0.1"),
     )
     assert decision.calculation is not None
-    assert decision.calculation.take_profit == Decimal("103.9")
+    assert decision.calculation.take_profit == Decimal("104.0")
 
 
 def test_fee_is_entry_plus_tp_exit_both_sides() -> None:
@@ -249,8 +249,8 @@ def test_effective_risk_above_1_5x_logs_warning() -> None:
     assert any(entry["event"] == "effective_risk_wide" for entry in logs)
 
 
-def test_rr_ratio_computed_from_rounded_prices() -> None:
-    """Viability uses post-rounding R:R rather than the raw requested prices."""
+def test_rr_ratio_at_least_minimum_after_rounding() -> None:
+    """RISK-001 fix: post-rounding RR is always >= 2.0 (TP recomputed from rounded stop)."""
     decision = engine().approve(
         Decimal("100"),
         Decimal("102.01"),
@@ -261,7 +261,7 @@ def test_rr_ratio_computed_from_rounded_prices() -> None:
     )
     assert decision.approved
     assert decision.calculation is not None
-    assert decision.calculation.rr_ratio == Decimal("2")
+    assert decision.calculation.rr_ratio >= Decimal("2")
 
 
 def test_approve_integrates_all_steps_returns_approved() -> None:
