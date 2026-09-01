@@ -195,6 +195,15 @@ class BybitRESTClient:
                 price_filter = self._mapping_value(row, "priceFilter")
                 lot_size_filter = self._mapping_value(row, "lotSizeFilter")
                 leverage_filter = self._mapping_value(row, "leverageFilter")
+                try:
+                    raw_launch = row.get("launchTime")
+                    launch_time: datetime | None = None
+                    if raw_launch is not None:
+                        launch_time = datetime.fromtimestamp(
+                            int(str(raw_launch)) / 1_000, tz=UTC
+                        )
+                except (TypeError, ValueError, OverflowError):
+                    launch_time = None
                 instruments.append(
                     SymbolInfo(
                         symbol=self._string_value(row, "symbol"),
@@ -212,6 +221,7 @@ class BybitRESTClient:
                             self._string_value(leverage_filter, "maxLeverage")
                         ),
                         contract_type=self._string_value(row, "contractType"),
+                        launch_time=launch_time,
                     )
                 )
             except (InvalidOperation, KeyError, TypeError, ValueError) as error:

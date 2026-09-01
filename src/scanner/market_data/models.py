@@ -18,6 +18,7 @@ class SymbolInfo:
     min_order_qty: Decimal
     max_leverage: float
     contract_type: str
+    launch_time: datetime | None = None  # UTC datetime the symbol was listed on Bybit
 
 
 @dataclass(frozen=True)

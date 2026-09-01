@@ -33,6 +33,7 @@ class ScannerConfig(BaseSettings):
     setup_expiration_hours: int = 4
     aplus_score_threshold: int = 80
     universe_min_volume_usd: float = 50_000_000.0
+    universe_new_listing_days: int = 30  # include symbols listed within this many days
 
     risk_per_trade_usd: float = 5.00
     daily_loss_limit_usd: float = -25.00
