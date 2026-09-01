@@ -473,3 +473,34 @@ T012 (ScanLoop) — now unblocked.
 T012 (ScanLoop) — now unblocked.
 
 ---
+
+## [0.12.0] 2026-09-01
+
+### T012 APPROVED — ScanLoop
+
+**Agent**: Codex | **Sonnet** (integration) | **Gemini** (adversarial) | **CTO Opus** (final)
+**Release Decision**: APPROVED
+**Tests**: 285 full suite / 29 T012-specific — 0 failed
+
+#### Files Created / Modified
+
+- `src/scanner/scan_loop.py` — 374 lines; full end-to-end paper pipeline
+  - Decision A: regime refresh on BTCUSDT 4H boundary (hour%4==0, minute==0)
+  - Decision B: TRIGGERED->ACTIVE with confirmed_entry = next_candle.open
+  - Decision C: SL wins same-candle hit; net_pnl = gross - fee(×2) - slippage(×2)
+  - Step order: promote → active-check → halt-guard → detect → handle_triggered
+  - SymbolInfo dict cache from REST at startup + 24H refresh
+  - All exception paths isolated; never raises to WS callback
+- `src/scanner/candle_store/candle_store.py` — patched: on_closed_candle callback
+- `src/scanner/strategy/signal_manager.py` — patched: cancel() for pre-ACTIVE states
+
+#### Known Deferred (F-01)
+
+_risk_calculations dict not pruned on CANCELLED/EXPIRED signals. Authorized fix:
+`self._risk_calculations.clear()` at DailySession reset. Deferred to T013.
+
+#### Next
+
+T013 (Alert Engine) — now unblocked.
+
+---

@@ -167,6 +167,20 @@ class SignalManager:
         self._remove_terminal_signals()
         await self._persist(events)
 
+    async def cancel(self, signal_id: UUID, reason: str) -> None:
+        """Cancel a non-terminal, pre-entry signal for a documented reason."""
+        signal = self._require_signal(signal_id)
+        if signal.state is SignalState.ACTIVE:
+            raise ValueError("use mark_terminal() to cancel an ACTIVE signal")
+        if signal.state in TERMINAL_STATES:
+            raise ValueError(f"signal is already terminal: {signal.state.value}")
+        events: list[_PersistenceEvent] = []
+        self._transition(
+            signal, SignalState.CANCELLED, reason, datetime.now(UTC), events
+        )
+        self._remove_terminal_signals()
+        await self._persist(events)
+
     def _expire_or_cancel_stale(
         self,
         candle: Candle,

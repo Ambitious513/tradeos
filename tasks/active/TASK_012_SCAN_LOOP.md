@@ -2,7 +2,7 @@
 # ═══════════════════════════════════════════════════════════════
 # Task ID:        T012
 # Task Name:      ScanLoop — Main Orchestration Loop
-# Status:         READY
+# Status:         APPROVED — 2026-09-01
 # Priority:       P1
 # Owner Agent:    CODEX
 # Reviewer:       SONNET (integration), GEMINI (adversarial), CTO (final)
@@ -466,3 +466,4 @@ Recommended Next Step: T013 (Alert Engine)
 ---
 
 *End of Task Contract — T012 ScanLoop*
+

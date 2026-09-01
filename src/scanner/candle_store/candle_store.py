@@ -1,6 +1,6 @@
 """Maintain closed-candle buffers fed by Bybit REST and WebSocket transports."""
 
-from collections.abc import Iterable
+from collections.abc import Awaitable, Callable, Iterable
 from datetime import UTC
 
 from scanner.config import ScannerConfig
@@ -25,6 +25,7 @@ class CandleStore:
         ws_client: BybitWebSocketClient,
         config: ScannerConfig,
         buffer_size: int = 200,
+        on_closed_candle: Callable[[Candle], Awaitable[None]] | None = None,
     ) -> None:
         """Create an empty in-memory store backed by existing transport clients."""
         if buffer_size < 1:
@@ -33,6 +34,7 @@ class CandleStore:
         self._ws_client = ws_client
         self._config = config
         self._buffer_size = buffer_size
+        self._on_closed_candle = on_closed_candle
         self._closed_buffers: dict[_CandleKey, list[Candle]] = {}
         self._forming_candles: dict[_CandleKey, Candle] = {}
         self._subscribed_symbols: frozenset[str] = frozenset()
@@ -97,6 +99,8 @@ class CandleStore:
             await self._fill_gap_if_needed(key, latest, candle)
 
         self._insert_closed(key, candle)
+        if self._on_closed_candle is not None:
+            await self._on_closed_candle(candle)
         logger.info(
             "candle_closed_stored",
             symbol=candle.symbol,
