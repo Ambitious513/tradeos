@@ -26,6 +26,7 @@ Candle windows:
 
 from __future__ import annotations
 
+import argparse
 import asyncio
 import sys
 from datetime import UTC, datetime, timedelta
@@ -45,11 +46,13 @@ _BYBIT_MAINNET_BASE   = "https://api.bybit.com"
 _INSTRUMENTS_URL      = f"{_BYBIT_MAINNET_BASE}/v5/market/instruments-info"
 _1H_DAYS              = 180
 _BTC_4H_DAYS          = 213
-_1H_CANDLES_NEEDED    = _1H_DAYS * 24
-_BTC_CANDLES_NEEDED   = _BTC_4H_DAYS * 6
+_1H_CANDLES_NEEDED    = _1H_DAYS * 24        # 4320 — used for Pass 2 (top volume)
+_1H_CANDLES_NEW       = 60 * 24              # 1440 — Pass 1 new listings (max 60d data)
+_BTC_CANDLES_NEEDED   = _BTC_4H_DAYS * 6    # 1278
 _BATCH_SIZE           = 1000
 _NEW_LISTING_MIN_DAYS = 14
 _NEW_LISTING_MAX_DAYS = 60
+_NEW_LISTING_MIN_VOL  = 5_000_000            # 5M USD 24H turnover — filters dead coins
 _TOP_VOLUME_COUNT     = 20
 _VOLUME_EXCLUDE       = {"BTCUSDT", "ETHUSDT"}
 _WARMUP_CANDLES       = 50
@@ -59,8 +62,18 @@ async def _fetch_new_listing_symbols(
     rest: BybitRESTClient,
     now: datetime,
 ) -> list[tuple[str, SymbolInfo]]:
+    """Return (symbol, SymbolInfo) pairs for coins listed 14–60 days ago.
+
+    Volume filter uses the tickers endpoint (turnover_24h) — the correct source.
+    The instruments-info endpoint does NOT carry volume data.
+    """
     min_ts = int((now - timedelta(days=_NEW_LISTING_MAX_DAYS)).timestamp() * 1000)
     max_ts = int((now - timedelta(days=_NEW_LISTING_MIN_DAYS)).timestamp() * 1000)
+
+    # Fetch tickers first for volume cross-reference.
+    tickers = await rest.get_tickers_24h()
+    volume_map = {t.symbol: float(t.turnover_24h) for t in tickers}
+
     async with aiohttp.ClientSession() as session:
         async with session.get(
             _INSTRUMENTS_URL,
@@ -76,12 +89,18 @@ async def _fetch_new_listing_symbols(
         if row.get("status") != "Trading":
             continue
         launch_ms = int(row.get("launchTime", 0))
-        if min_ts <= launch_ms <= max_ts:
-            candidates.append(row["symbol"])
+        if not (min_ts <= launch_ms <= max_ts):
+            continue
+        sym = row["symbol"]
+        # Volume filter: skip dead coins using tickers data (correct source).
+        if volume_map.get(sym, 0.0) < _NEW_LISTING_MIN_VOL:
+            continue
+        candidates.append(sym)
     all_info = await rest.get_instruments_info()
     info_map = {s.symbol: s for s in all_info}
     pairs = [(sym, info_map[sym]) for sym in candidates if sym in info_map]
     pairs.sort(key=lambda p: p[0])
+    print(f"  (volume-filtered to {len(pairs)} with >${_NEW_LISTING_MIN_VOL/1_000_000:.0f}M 24H turnover)")
     return pairs
 
 
@@ -267,13 +286,15 @@ async def _run_pass(
     universe: list[tuple[str, SymbolInfo]],
     btc_candles_4h: list[Candle],
     now_ms: int,
+    is_pass1: bool = False,
 ) -> list[BacktestResult]:
+    candles_needed = _1H_CANDLES_NEW if is_pass1 else _1H_CANDLES_NEEDED
     results: list[BacktestResult] = []
     for symbol, symbol_info in universe:
         print(f"    {symbol:<16} ...", end=" ", flush=True)
         try:
             candles_1h = await _fetch_candles_paginated(
-                rest, symbol, "60", _1H_CANDLES_NEEDED, now_ms
+                rest, symbol, "60", candles_needed, now_ms
             )
             if len(candles_1h) < _WARMUP_CANDLES + 2:
                 print(f"skipped ({len(candles_1h)} candles -- not enough history)")
@@ -293,11 +314,14 @@ async def _run_pass(
     return results
 
 
-async def main() -> None:
+async def main(end_dt: datetime | None = None) -> None:
+    if end_dt is None:
+        end_dt = datetime.now(UTC)
+
     print()
     print("=" * 70)
     print("  A+ SCANNER -- GATE-2 BACKTEST RUNNER v1.0")
-    print(f"  {datetime.now(UTC).strftime('%Y-%m-%d %H:%M UTC')}  |  "
+    print(f"  window end: {end_dt.strftime('%Y-%m-%d')} UTC  |  "
           f"{_1H_DAYS}-day window  |  2 passes")
     print("=" * 70)
 
@@ -314,7 +338,7 @@ async def main() -> None:
         )
 
     rest   = BybitRESTClient(config)
-    now    = datetime.now(UTC)
+    now    = end_dt
     now_ms = int(now.timestamp() * 1000)
 
     print(f"\n  Fetching BTC 4H candles ({_BTC_4H_DAYS} days) ...", end=" ", flush=True)
@@ -348,7 +372,8 @@ async def main() -> None:
             len(new_listing_universe),
         )
         pass1_results = await _run_pass(
-            rest, config, new_listing_universe, btc_candles_4h, now_ms
+            rest, config, new_listing_universe, btc_candles_4h, now_ms,
+            is_pass1=True,
         )
         print()
         for r in pass1_results:
@@ -382,4 +407,28 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    parser = argparse.ArgumentParser(
+        description="GATE-2 backtest runner — A+ Scanner v1.0",
+    )
+    parser.add_argument(
+        "--end-date",
+        metavar="YYYY-MM-DD",
+        default=None,
+        help=(
+            "End date for the backtest window (UTC, inclusive). "
+            "Defaults to today. "
+            "Example: --end-date 2024-12-31 to test the Nov-Dec 2024 BTC bull run."
+        ),
+    )
+    args = parser.parse_args()
+
+    if args.end_date:
+        try:
+            _end_dt = datetime.strptime(args.end_date, "%Y-%m-%d").replace(tzinfo=UTC)
+        except ValueError:
+            print(f"ERROR: --end-date must be YYYY-MM-DD, got: {args.end_date!r}")
+            sys.exit(1)
+    else:
+        _end_dt = datetime.now(UTC)
+
+    asyncio.run(main(_end_dt))
