@@ -20,6 +20,7 @@ from scanner.strategy.setup_detector import (
     compute_take_profit,
     detect_initial_conditions,
 )
+from scanner.strategy.signal_manager import SignalManager
 
 __all__ = [
     "SetupContext",
@@ -42,4 +43,5 @@ __all__ = [
     "ScoreInput",
     "compute_score",
     "is_a_plus",
+    "SignalManager",
 ]

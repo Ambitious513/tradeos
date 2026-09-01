@@ -410,3 +410,39 @@ sweep/excess, and entry/stop/TP are supplied separately at score-computation tim
 T010 (SignalManager) — now unblocked.
 
 ---
+
+## [0.10.0] 2026-09-01
+
+### T010 APPROVED — SignalManager + SignalWriter
+
+**Agent**: Codex | **Sonnet** (quant) | **Gemini** (adversarial) | **CTO Opus** (final)
+**Release Decision**: APPROVED
+**Tests**: 226 full suite / 30 T010-specific — 0 failed
+
+#### Files Created / Modified
+
+- `src/scanner/strategy/signal_manager.py` — 619 lines
+  - `ActiveSignal` mutable dataclass (in-memory signal state)
+  - `SignalManager.on_candle()`: expire/cancel → advance ARMED → advance WATCHING → detect
+  - DETECTED is transient: signal enters active list as WATCHING (Ruling A)
+  - Score at TRIGGERED: estimated_entry = trigger_candle.close (Ruling B)
+  - sweep_or_excess_pct correct per direction (Ruling C)
+  - Event-then-persist pattern: in-memory transitions precede DB writes
+  - `inspect.isawaitable` pattern for sync/async session factory compatibility
+- `src/scanner/database/signal_writer.py` — 110 lines
+  - `_VALID_TRANSITIONS` dict enforces all legal state successions
+  - `create_signal()`: writes DETECTED ORM row + DETECTED→WATCHING transition
+  - `write_transition()`: validates, writes StateTransition, updates Signal row
+  - Never commits — SignalManager owns the session lifecycle
+- `src/scanner/strategy/__init__.py` — updated
+
+#### Contract Deviation (Accepted)
+
+`triggered_at: datetime | None` added to `ActiveSignal` — required for the
+1H TRIGGERED→EXPIRED expiration window defined in STRATEGY_SPEC §10.
+
+#### Next
+
+T012 (ScanLoop) — now unblocked.
+
+---

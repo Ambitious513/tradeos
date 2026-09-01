@@ -2,7 +2,7 @@
 # ═══════════════════════════════════════════════════════════════
 # Task ID:        T010
 # Task Name:      SignalManager — Signal State Machine
-# Status:         READY
+# Status:         APPROVED — 2026-09-01
 # Priority:       P1
 # Owner Agent:    CODEX
 # Reviewer:       SONNET (quant), GEMINI (adversarial), CTO (final)
@@ -501,3 +501,4 @@ Focus:
 ---
 
 *End of Task Contract — T010 SignalManager*
+
