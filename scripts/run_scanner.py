@@ -1,4 +1,4 @@
-﻿"""A+ Scanner -- Live Scanner Entry Point (GATE-3 Observation Mode).
+"""A+ Scanner -- Live Scanner Entry Point (GATE-3 Observation Mode).
 
 Usage:
     python scripts/run_scanner.py
@@ -26,7 +26,6 @@ from scanner.candle_store.candle_store import CandleStore
 from scanner.candle_store.universe_manager import UniverseManager
 from scanner.config import ScannerConfig
 from scanner.database.connection import create_engine, get_session
-from scanner.database.migrations import run_migrations
 from scanner.database.models import Base
 from scanner.database.trade_writer import TradeWriter
 from scanner.logging_setup import get_logger
