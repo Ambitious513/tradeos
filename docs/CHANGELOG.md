@@ -1,5 +1,53 @@
-﻿# CHANGELOG.md — A+ Scanner
+# CHANGELOG.md — A+ Scanner
 # Format: [VERSION] DATE — Description
+
+---
+
+## [0.4.0] 2026-09-01
+
+### TASK-015 — Paper Trading Infrastructure: Telegram Alerts + Trade Reporting
+
+**Agent**: Lead CTO (implementation self-approved — no strategy changes)
+**Gate**: GATE-2 APPROVED_WITH_CONDITIONS → advancing to GATE-3 observation phase
+
+#### Fixed
+
+- **RISK-001** (`src/scanner/risk/risk_engine.py`): TP rounding direction bug.
+  `_round_trade_prices` was rounding TP *toward* entry (UP for SHORT, DOWN
+  for LONG), always dropping post-rounding RR below 2.0 and blocking every
+  trade in the system. Fixed: TP now recomputed from the rounded stop to
+  preserve exactly 2.0 RR at tick level, then rounded *away* from entry.
+  Post-rounding RR ≥ 2.0 is now mathematically guaranteed.
+  Commit: `813af11`. Human CTO approved 2026-09-01.
+
+#### Added
+
+- `src/scanner/database/trade_writer.py` — `TradeWriter` class: async DB
+  writer for paper trade open/close events against the existing `Trade` model.
+- `src/scanner/scan_loop.py` — `AlertEngine` and `TradeWriter` injected as
+  optional constructor parameters. Wired at 4 lifecycle points:
+  - TRIGGERED → `send_signal_triggered` (fire-and-forget)
+  - ACTIVE (position open) → `send_position_opened` + `open_trade` DB write
+  - TP_HIT / SL_HIT → `send_position_closed` + `close_trade` DB write
+  - Daily halt → `send_daily_halted`
+- `scripts/report.py` — CLI daily performance report. Reads SQLite DB and
+  prints signals detected, triggered count, trade outcomes, PnL, and open
+  positions for a given UTC date.
+- `tests/unit/test_trade_writer.py` — 3 unit tests for TradeWriter.
+- `tests/unit/test_scan_loop_alerts.py` — 5 unit tests verifying alert +
+  DB write calls at each lifecycle point.
+
+#### Tests
+
+- 360 tests pass (0 failures). Net new: +8 tests.
+
+#### GATE-2 Decision
+
+- Status: **APPROVED_WITH_CONDITIONS**
+- Synthetic E2E validated: BacktestEngine fires SHORT_EXHAUSTION trade
+  end-to-end (score=85, TP_HIT, PnL=+$8.52).
+- Condition: target new Bybit listings (< 30 days old) for 7-day
+  observation-only run before GATE-3 paper execution begins.
 
 ---
 

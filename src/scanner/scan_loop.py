@@ -11,9 +11,11 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from scanner.alerting.alert_engine import AlertEngine
 from scanner.candle_store.candle_store import CandleStore
 from scanner.candle_store.universe_manager import UniverseManager
 from scanner.config import ScannerConfig
+from scanner.database.trade_writer import TradeWriter
 from scanner.logging_setup import get_logger
 from scanner.market_data.bybit_rest import BybitRESTClient
 from scanner.market_data.bybit_ws import BybitWebSocketClient
@@ -49,6 +51,8 @@ class ScanLoop:
         signal_manager: SignalManager,
         risk_engine: RiskEngine,
         session_factory: Callable[[], AsyncContextManager[AsyncSession]],
+        alert_engine: AlertEngine | None = None,
+        trade_writer: TradeWriter | None = None,
     ) -> None:
         """Create the orchestrator from its approved data and strategy components."""
         self._config = config
@@ -60,13 +64,17 @@ class ScanLoop:
         self._signal_manager = signal_manager
         self._risk_engine = risk_engine
         self._session_factory = session_factory
+        self._alert_engine = alert_engine
+        self._trade_writer = trade_writer
         self._regime = Regime.UNDEFINED
         self._daily_session = DailySession(date=datetime.now(UTC).date())
         self._symbol_info_cache: dict[str, SymbolInfo] = {}
         self._risk_calculations: dict[UUID, RiskCalculation] = {}
+        self._open_trade_ids: dict[UUID, str] = {}   # signal_id -> Trade.id
         self._known_symbols: set[str] = set()
         self._stop_requested = False
         self._shutdown_event = asyncio.Event()
+
 
     @property
     def daily_session(self) -> DailySession:
@@ -151,6 +159,28 @@ class ScanLoop:
             if signal.triggered_at is None or signal.triggered_at >= candle.open_time:
                 continue
             await self._signal_manager.mark_active(signal.signal_id, candle.open)
+            calculation = self._risk_calculations.get(signal.signal_id)
+            if calculation is not None and self._alert_engine is not None:
+                asyncio.create_task(
+                    self._alert_engine.send_position_opened(
+                        signal, candle.open, calculation
+                    )
+                )
+            if calculation is not None and self._trade_writer is not None:
+                try:
+                    async with self._session_factory() as session:
+                        trade = await self._trade_writer.open_trade(
+                            session, signal, calculation, candle.open, candle.open_time
+                        )
+                        await session.commit()
+                    self._open_trade_ids[signal.signal_id] = trade.id
+                except Exception as err:
+                    logger.error(
+                        "trade_open_db_error",
+                        symbol=signal.symbol,
+                        exception_type=type(err).__name__,
+                        message=str(err),
+                    )
             logger.info(
                 "signal_entry_confirmed",
                 signal_id=str(signal.signal_id),
@@ -206,6 +236,12 @@ class ScanLoop:
                 await self._signal_manager.cancel(signal.signal_id, decision.reason)
                 continue
             self._risk_calculations[signal.signal_id] = decision.calculation
+            if self._alert_engine is not None:
+                asyncio.create_task(
+                    self._alert_engine.send_signal_triggered(
+                        signal, decision.calculation, self._regime
+                    )
+                )
             logger.info(
                 "risk_approved_awaiting_entry",
                 signal_id=str(signal.signal_id),
@@ -258,6 +294,32 @@ class ScanLoop:
                 ),
             )
             self._risk_calculations.pop(signal.signal_id, None)
+            trade_id = self._open_trade_ids.pop(signal.signal_id, None)
+            exit_price = (
+                calculation.take_profit
+                if terminal_state is SignalState.TP_HIT
+                else calculation.stop_price
+            )
+            if self._alert_engine is not None:
+                asyncio.create_task(
+                    self._alert_engine.send_position_closed(
+                        signal, terminal_state, net_pnl, self._daily_session.realized_pnl
+                    )
+                )
+            if trade_id is not None and self._trade_writer is not None:
+                try:
+                    async with self._session_factory() as session:
+                        await self._trade_writer.close_trade(
+                            session, trade_id, exit_price, net_pnl, candle.open_time
+                        )
+                        await session.commit()
+                except Exception as err:
+                    logger.error(
+                        "trade_close_db_error",
+                        symbol=signal.symbol,
+                        exception_type=type(err).__name__,
+                        message=str(err),
+                    )
             event = (
                 "position_closed_sl"
                 if terminal_state is SignalState.SL_HIT
@@ -363,6 +425,10 @@ class ScanLoop:
             realized_pnl=str(self._daily_session.realized_pnl),
             trades_taken=self._daily_session.trades_taken,
         )
+        if self._alert_engine is not None:
+            asyncio.create_task(
+                self._alert_engine.send_daily_halted(self._daily_session)
+            )
 
     def _signals_for(self, symbol: str, state: SignalState) -> list[ActiveSignal]:
         """Return state-filtered same-symbol snapshots from the signal manager."""
