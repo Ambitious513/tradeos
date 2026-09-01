@@ -317,3 +317,34 @@ T006 (Indicators) + T007 (RegimeDetector) in parallel.
 T007 (RegimeDetector) — now unblocked.
 
 ---
+
+## [0.7.0] 2026-09-01
+
+### T007 APPROVED — BTC Regime Detector
+
+**Agent**: Codex | **Sonnet** (quant) | **Gemini** (adversarial) | **CTO Opus** (final)
+**Release Decision**: APPROVED
+**Tests**: 130 full suite / 19 T007-specific — 0 failed | Coverage: 100%
+
+#### Files Created
+
+- `src/scanner/regime/detector.py` — 127 lines
+  - Six-step classification matching STRATEGY_SPEC.md §3 exactly
+  - Steps: data check → 24H proxy (candles[-7]) → neutral gate → EMA stack → pump/dump gate → bull/bear/undefined
+  - Zero reference-close guard (bonus defensive check)
+  - `_record_classification()` centralises state + logging; no exit path bypasses it
+  - All Decimal/float logged as str()
+- `src/scanner/regime/__init__.py`
+- `tests/unit/test_regime_detector.py` — 19 tests; 100% coverage
+
+#### Review Artifacts
+
+- `reviews/sonnet/TASK_007_QUANT_REVIEW.md` — APPROVED
+- `reviews/gemini/TASK_007_RED_TEAM.md` — APPROVED
+- `reviews/opus/TASK_007_FINAL_REVIEW.md` — APPROVED
+
+#### Next
+
+T008 (SetupDetector), T009, T010 — strategy modules now unblocked.
+
+---
